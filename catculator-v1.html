@@ -1,0 +1,733 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Calculadora de Gatinhos PWA</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Fredoka -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pastelPink: '#FCE4EC',
+                        pastelPinkDeep: '#F48FB1',
+                        pastelPinkDark: '#F06292',
+                        pastelLavender: '#E1BEE7',
+                        pastelLavenderDeep: '#CE93D8',
+                        pastelCream: '#FFF8E7',
+                        pastelMint: '#E8F5E9',
+                        pastelText: '#4A3E4E',
+                        pastelAccent: '#FF80AB'
+                    },
+                    fontFamily: {
+                        fredoka: ['Fredoka', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: linear-gradient(135deg, #FCE4EC 0%, #E1BEE7 50%, #E8F5E9 100%);
+            min-height: 100vh;
+            color: #4A3E4E;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Neumorphic Soft UI Utilities */
+        .soft-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 3px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 20px 40px rgba(186, 104, 200, 0.15),
+                        0 8px 16px rgba(244, 143, 177, 0.1);
+        }
+
+        .btn-calc {
+            transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 10px rgba(186, 104, 200, 0.15),
+                        inset 0 2px 2px rgba(255, 255, 255, 0.8);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-calc:active {
+            transform: scale(0.92) translateY(2px);
+            box-shadow: 0 1px 3px rgba(186, 104, 200, 0.2),
+                        inset 0 1px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Cat ears styling */
+        .cat-ear-left, .cat-ear-right {
+            transition: transform 0.2s ease;
+        }
+
+        .calculator-container:hover .cat-ear-left {
+            transform: rotate(-8deg) translateY(-2px);
+        }
+        .calculator-container:hover .cat-ear-right {
+            transform: rotate(8deg) translateY(-2px);
+        }
+
+        /* Custom Scrollbar for Display & History */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CE93D8;
+            border-radius: 10px;
+        }
+
+        /* Custom Modal Backdrop */
+        .modal-backdrop {
+            background: rgba(74, 62, 78, 0.4);
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-3 sm:p-6 overflow-x-hidden">
+
+    <div class="w-full max-w-sm mx-auto relative flex flex-col items-center">
+        
+        <!-- PWA Install Banner (Hidden by default) -->
+        <div id="pwaInstallBanner" class="hidden w-full mb-3 bg-white/90 backdrop-blur border-2 border-pastelPinkDeep rounded-2xl p-3 flex items-center justify-between shadow-lg transition-all transform duration-300">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-full bg-pastelPink flex items-center justify-center text-pastelPinkDark">
+                    <!-- Paw SVG -->
+                    <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                        <path d="M12 11.5c-2.5 0-4.5 1.8-4.5 4 0 1.5.8 2.5 2 3.2.8.5 1.6.8 2.5.8s1.7-.3 2.5-.8c1.2-.7 2-1.7 2-3.2 0-2.2-2-4-4.5-4zm-5.5-2c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm11 0c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-10-4.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm9 0c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
+                    </svg>
+                </div>
+                <span class="text-xs font-semibold text-pastelText">Instalar App de Gatinho</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <button id="btnInstallPwa" class="bg-pastelPinkDeep hover:bg-pastelPinkDark text-white text-xs px-3 py-1.5 rounded-xl font-bold shadow transition-all">Instalar</button>
+                <button id="btnClosePwa" class="text-gray-400 hover:text-pastelText p-1">
+                    <svg class="w-4 h-4 stroke-current stroke-2" fill="none" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- CALCULATOR BODY CONTAINER -->
+        <div class="calculator-container relative w-full pt-6">
+            
+            <!-- Cat Ears (Decorative SVGs placed on top of main card) -->
+            <div class="absolute top-0 left-0 right-0 flex justify-between px-8 z-0 pointer-events-none">
+                <!-- Left Ear -->
+                <div class="cat-ear-left w-16 h-16 bg-pastelPinkDeep rounded-tl-full border-t-4 border-l-4 border-white shadow-md relative overflow-hidden flex items-center justify-center">
+                    <div class="w-8 h-8 bg-pastelPink rounded-tl-full border-t-2 border-l-2 border-white/60"></div>
+                </div>
+                <!-- Right Ear -->
+                <div class="cat-ear-right w-16 h-16 bg-pastelPinkDeep rounded-tr-full border-t-4 border-r-4 border-white shadow-md relative overflow-hidden flex items-center justify-center">
+                    <div class="w-8 h-8 bg-pastelPink rounded-tr-full border-t-2 border-r-2 border-white/60"></div>
+                </div>
+            </div>
+
+            <!-- MAIN CALCULATOR CARD -->
+            <div class="soft-card relative z-10 rounded-3xl p-5 sm:p-6 flex flex-col gap-4">
+                
+                <!-- Top Toolbar (Sound Toggle, History, Whiskers/Logo) -->
+                <div class="flex items-center justify-between px-1">
+                    <button id="btnAudioToggle" title="Alternar som do Miau" class="p-2 rounded-2xl bg-white/60 hover:bg-white text-pastelPinkDark transition-colors shadow-sm">
+                        <!-- Sound On SVG -->
+                        <svg id="iconSoundOn" class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                        </svg>
+                        <!-- Sound Off SVG (Hidden by default) -->
+                        <svg id="iconSoundOff" class="w-5 h-5 fill-current hidden" viewBox="0 0 24 24">
+                            <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+                        </svg>
+                    </button>
+
+                    <!-- Cute Cat Nose & Whiskers Icon -->
+                    <div class="flex items-center justify-center opacity-70 hover:opacity-100 transition-opacity">
+                        <svg class="w-8 h-6 stroke-pastelPinkDark stroke-2 fill-none" viewBox="0 0 40 30">
+                            <!-- Nose -->
+                            <polygon points="20,10 16,5 24,5" fill="#F48FB1" stroke="none" />
+                            <!-- Mouth -->
+                            <path d="M20,10 Q16,16 12,13 M20,10 Q24,16 28,13" stroke-linecap="round" />
+                            <!-- Whiskers Left -->
+                            <path d="M10,8 L2,5 M10,11 L1,11 M10,14 L3,17" stroke-linecap="round" />
+                            <!-- Whiskers Right -->
+                            <path d="M30,8 L38,5 M30,11 L39,11 M30,14 L37,17" stroke-linecap="round" />
+                        </svg>
+                    </div>
+
+                    <button id="btnHistoryToggle" title="Histórico" class="p-2 rounded-2xl bg-white/60 hover:bg-white text-pastelLavenderDeep transition-colors shadow-sm">
+                        <!-- History Clock SVG -->
+                        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                            <path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6a7 7 0 1 1 7 7 7.07 7.07 0 0 1-6-3.41l-1.41 1.41A9 9 0 1 0 13 3zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Display Screen -->
+                <div class="w-full bg-pastelCream/90 rounded-2xl p-4 border-2 border-white shadow-inner flex flex-col justify-between items-end min-h-[90px] overflow-hidden">
+                    <!-- Previous Expression line -->
+                    <div id="expressionDisplay" class="text-xs sm:text-sm font-medium text-pastelText/60 tracking-wider truncate w-full text-right h-5"></div>
+                    <!-- Current Result / Output line -->
+                    <div id="resultDisplay" class="text-3xl sm:text-4xl font-bold text-pastelText tracking-tight truncate w-full text-right">0</div>
+                </div>
+
+                <!-- KEYPAD GRID -->
+                <div class="grid grid-cols-4 gap-2.5 sm:gap-3">
+                    
+                    <!-- Row 1 -->
+                    <button data-action="clear" class="btn-calc bg-pastelPink text-pastelPinkDark font-bold text-base sm:text-lg p-3 sm:p-4 rounded-2xl flex items-center justify-center border border-white">
+                        <!-- Paw Icon for AC -->
+                        <svg class="w-5 h-5 mr-1 fill-current inline sm:hidden" viewBox="0 0 24 24">
+                            <path d="M12 11.5c-2.5 0-4.5 1.8-4.5 4 0 1.5.8 2.5 2 3.2.8.5 1.6.8 2.5.8s1.7-.3 2.5-.8c1.2-.7 2-1.7 2-3.2 0-2.2-2-4-4.5-4zm-5.5-2c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm11 0c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
+                        </svg>
+                        <span>AC</span>
+                    </button>
+                    <button data-action="backspace" title="Apagar" class="btn-calc bg-pastelPink/60 text-pastelPinkDark p-3 sm:p-4 rounded-2xl flex items-center justify-center border border-white">
+                        <!-- Custom Backspace SVG -->
+                        <svg class="w-6 h-6 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
+                            <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M18 9l-6 6M12 9l6 6" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <button data-action="percent" class="btn-calc bg-pastelPink/60 text-pastelPinkDark font-bold text-lg p-3 sm:p-4 rounded-2xl border border-white">%</button>
+                    <button data-action="operator" data-val="/" class="btn-calc bg-pastelLavenderDeep text-white font-bold text-xl p-3 sm:p-4 rounded-2xl border border-white">÷</button>
+
+                    <!-- Row 2 -->
+                    <button data-num="7" class="btn-calc bg-white/90 text-pastelText font-semibold text-xl p-3 sm:p-4 rounded-2xl border border-white">7</button>
+                    <button data-num="8" class="btn-calc bg-white/90 text-pastelText font-semibold text-xl p-3 sm:p-4 rounded-2xl border border-white">8</button>
+                    <button data-num="9" class="btn-calc bg-white/90 text-pastelText font-semibold text-xl p-3 sm:p-4 rounded-2xl border border-white">9</button>
+                    <button data-action="operator" data-val="*" class="btn-calc bg-pastelLavenderDeep text-white font-bold text-xl p-3 sm:p-4 rounded-2xl border border-white">×</button>
+
+                    <!-- Row 3 -->
+                    <button data-num="4" class="btn-calc bg-white/90 text-pastelText font-semibold text-xl p-3 sm:p-4 rounded-2xl border border-white">4</button>
+                    <button data-num="5" class="btn-calc bg-white/90 text-pastelText font-semibold text-xl p-3 sm:p-4 rounded-2xl border border-white">5</button>
+                    <button data-num="6" class="btn-calc bg-white/90 text-pastelText font-semibold text-xl p-3 sm:p-4 rounded-2xl border border-white">6</button>
+                    <button data-action="operator" data-val="-" class="btn-calc bg-pastelLavenderDeep text-white font-bold text-xl p-3 sm:p-4 rounded-2xl border border-white">−</button>
+
+                    <!-- Row 4 -->
+                    <button data-num="1" class="btn-calc bg-white/90 text-pastelText font-semibold text-xl p-3 sm:p-4 rounded-2xl border border-white">1</button>
+                    <button data-num="2" class="btn-calc bg-white/90 text-pastelText font-semibold text-xl p-3 sm:p-4 rounded-2xl border border-white">2</button>
+                    <button data-num="3" class="btn-calc bg-white/90 text-pastelText font-semibold text-xl p-3 sm:p-4 rounded-2xl border border-white">3</button>
+                    <button data-action="operator" data-val="+" class="btn-calc bg-pastelLavenderDeep text-white font-bold text-xl p-3 sm:p-4 rounded-2xl border border-white">+</button>
+
+                    <!-- Row 5 -->
+                    <button data-action="negate" class="btn-calc bg-white/90 text-pastelText font-semibold text-lg p-3 sm:p-4 rounded-2xl border border-white">±</button>
+                    <button data-num="0" class="btn-calc bg-white/90 text-pastelText font-semibold text-xl p-3 sm:p-4 rounded-2xl border border-white">0</button>
+                    <button data-action="decimal" class="btn-calc bg-white/90 text-pastelText font-bold text-xl p-3 sm:p-4 rounded-2xl border border-white">,</button>
+                    <button data-action="equals" class="btn-calc bg-pastelPinkDark hover:bg-pastelAccent text-white font-bold text-2xl p-3 sm:p-4 rounded-2xl border border-white shadow-md flex items-center justify-center">
+                        =
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- HISTORY MODAL -->
+        <div id="historyModal" class="fixed inset-0 modal-backdrop hidden z-50 flex items-center justify-center p-4 transition-opacity duration-300">
+            <div class="soft-card bg-white/95 rounded-3xl w-full max-w-xs p-5 shadow-2xl flex flex-col max-h-[80vh] border-2 border-white">
+                <div class="flex items-center justify-between border-b border-pastelPink/50 pb-3 mb-3">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 fill-pastelPinkDark" viewBox="0 0 24 24">
+                            <path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6a7 7 0 1 1 7 7 7.07 7.07 0 0 1-6-3.41l-1.41 1.41A9 9 0 1 0 13 3zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>
+                        </svg>
+                        <h3 class="font-bold text-lg text-pastelText">Histórico Miau</h3>
+                    </div>
+                    <button id="btnCloseHistory" class="text-pastelText/50 hover:text-pastelText p-1 rounded-full hover:bg-pastelPink/30">
+                        <svg class="w-5 h-5 stroke-current stroke-2" fill="none" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <!-- History Items List -->
+                <div id="historyList" class="flex-1 overflow-y-auto space-y-2 pr-1 my-2">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <div class="pt-3 border-t border-pastelPink/50 flex justify-between items-center">
+                    <button id="btnClearHistory" class="text-xs font-semibold text-pastelPinkDark hover:underline flex items-center gap-1">
+                        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                        Limpar Histórico
+                    </button>
+                    <span class="text-[10px] text-pastelText/50">Clique para reusar</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /* ----------------------------------------------------
+           1. AUDIO SYNTHESIZER (Web Audio API)
+           Generates realistic cute click & meow sounds offline!
+           ---------------------------------------------------- */
+        class CatAudio {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) {
+                        this.ctx = new AudioContext();
+                    }
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playClick() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.05);
+
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.05);
+            }
+
+            playMeow() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'triangle';
+                
+                // Frequency contour simulating a cute "Mee-oow"
+                osc.frequency.setValueAtTime(500, now);
+                osc.frequency.linearRampToValueAtTime(850, now + 0.12);
+                osc.frequency.exponentialRampToValueAtTime(400, now + 0.35);
+
+                // Volume envelope
+                gain.gain.setValueAtTime(0.01, now);
+                gain.gain.linearRampToValueAtTime(0.25, now + 0.08);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.36);
+            }
+        }
+
+        const audio = new CatAudio();
+
+        /* ----------------------------------------------------
+           2. CALCULATOR ENGINE
+           ---------------------------------------------------- */
+        class Calculator {
+            constructor(expressionEl, resultEl) {
+                this.expressionEl = expressionEl;
+                this.resultEl = resultEl;
+                this.currentInput = '0';
+                this.previousInput = '';
+                this.operator = null;
+                this.shouldResetScreen = false;
+                this.history = JSON.parse(localStorage.getItem('cat_calc_history') || '[]');
+                this.updateDisplay();
+            }
+
+            appendNumber(number) {
+                if (this.currentInput === '0' || this.shouldResetScreen) {
+                    this.currentInput = number;
+                    this.shouldResetScreen = false;
+                } else {
+                    if (this.currentInput.length < 14) {
+                        this.currentInput += number;
+                    }
+                }
+                this.updateDisplay();
+            }
+
+            appendDecimal() {
+                if (this.shouldResetScreen) {
+                    this.currentInput = '0.';
+                    this.shouldResetScreen = false;
+                } else if (!this.currentInput.includes('.')) {
+                    this.currentInput += '.';
+                }
+                this.updateDisplay();
+            }
+
+            setOperator(op) {
+                if (this.operator !== null && !this.shouldResetScreen) {
+                    this.compute();
+                }
+                this.previousInput = this.currentInput;
+                this.operator = op;
+                this.shouldResetScreen = true;
+                this.updateDisplay();
+            }
+
+            compute() {
+                let computation;
+                const prev = parseFloat(this.previousInput);
+                const current = parseFloat(this.currentInput);
+
+                if (isNaN(prev) || isNaN(current)) return;
+
+                switch (this.operator) {
+                    case '+':
+                        computation = prev + current;
+                        break;
+                    case '-':
+                        computation = prev - current;
+                        break;
+                    case '*':
+                        computation = prev * current;
+                        break;
+                    case '/':
+                        if (current === 0) {
+                            this.currentInput = 'Erro Miau!';
+                            this.updateDisplay();
+                            this.shouldResetScreen = true;
+                            return;
+                        }
+                        computation = prev / current;
+                        break;
+                    default:
+                        return;
+                }
+
+                // Format precision cleanly
+                const formattedResult = Number(Math.round(parseFloat(computation + 'e8')) + 'e-8').toString();
+                
+                // Add to history
+                const symbol = this.getOperatorSymbol(this.operator);
+                const historyItem = {
+                    expression: `${this.formatNumber(this.previousInput)} ${symbol} ${this.formatNumber(this.currentInput)}`,
+                    result: formattedResult
+                };
+                this.addHistory(historyItem);
+
+                audio.playMeow(); // Sound trigger on successful equation!
+
+                this.currentInput = formattedResult;
+                this.operator = null;
+                this.previousInput = '';
+                this.shouldResetScreen = true;
+                this.updateDisplay();
+            }
+
+            percent() {
+                const current = parseFloat(this.currentInput);
+                if (isNaN(current)) return;
+                this.currentInput = (current / 100).toString();
+                this.updateDisplay();
+            }
+
+            negate() {
+                if (this.currentInput === '0') return;
+                this.currentInput = (parseFloat(this.currentInput) * -1).toString();
+                this.updateDisplay();
+            }
+
+            clear() {
+                this.currentInput = '0';
+                this.previousInput = '';
+                this.operator = null;
+                this.shouldResetScreen = false;
+                this.updateDisplay();
+            }
+
+            backspace() {
+                if (this.shouldResetScreen) return;
+                if (this.currentInput.length === 1 || (this.currentInput.length === 2 && this.currentInput.startsWith('-'))) {
+                    this.currentInput = '0';
+                } else {
+                    this.currentInput = this.currentInput.slice(0, -1);
+                }
+                this.updateDisplay();
+            }
+
+            getOperatorSymbol(op) {
+                switch(op) {
+                    case '+': return '+';
+                    case '-': return '−';
+                    case '*': return '×';
+                    case '/': return '÷';
+                    default: return '';
+                }
+            }
+
+            formatNumber(numStr) {
+                if (!numStr || numStr === 'Erro Miau!') return numStr;
+                const parts = numStr.split('.');
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                return parts.join(',');
+            }
+
+            updateDisplay() {
+                this.resultEl.textContent = this.formatNumber(this.currentInput);
+                if (this.operator != null) {
+                    this.expressionEl.textContent = `${this.formatNumber(this.previousInput)} ${this.getOperatorSymbol(this.operator)}`;
+                } else {
+                    this.expressionEl.textContent = '';
+                }
+            }
+
+            addHistory(item) {
+                this.history.unshift(item);
+                if (this.history.length > 20) this.history.pop();
+                localStorage.setItem('cat_calc_history', JSON.stringify(this.history));
+                renderHistory();
+            }
+
+            clearHistory() {
+                this.history = [];
+                localStorage.removeItem('cat_calc_history');
+                renderHistory();
+            }
+        }
+
+        // Initialize elements and Calculator
+        const expressionDisplay = document.getElementById('expressionDisplay');
+        const resultDisplay = document.getElementById('resultDisplay');
+        const calc = new Calculator(expressionDisplay, resultDisplay);
+
+        /* ----------------------------------------------------
+           3. UI EVENT LISTENERS & KEYBOARD HANDLERS
+           ---------------------------------------------------- */
+        document.querySelectorAll('.btn-calc').forEach(button => {
+            button.addEventListener('click', () => {
+                audio.playClick();
+
+                const num = button.dataset.num;
+                const action = button.dataset.action;
+                const val = button.dataset.val;
+
+                if (num !== undefined) {
+                    calc.appendNumber(num);
+                } else if (action) {
+                    switch(action) {
+                        case 'clear': calc.clear(); break;
+                        case 'backspace': calc.backspace(); break;
+                        case 'decimal': calc.appendDecimal(); break;
+                        case 'operator': calc.setOperator(val); break;
+                        case 'equals': calc.compute(); break;
+                        case 'percent': calc.percent(); break;
+                        case 'negate': calc.negate(); break;
+                    }
+                }
+            });
+        });
+
+        // Physical Keyboard Navigation
+        window.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9') {
+                audio.playClick();
+                calc.appendNumber(e.key);
+            } else if (e.key === '.' || e.key === ',') {
+                audio.playClick();
+                calc.appendDecimal();
+            } else if (e.key === '+' || e.key === '-' || e.key === '*' || e.key === '/') {
+                audio.playClick();
+                calc.setOperator(e.key);
+            } else if (e.key === 'Enter' || e.key === '=') {
+                e.preventDefault();
+                calc.compute();
+            } else if (e.key === 'Backspace') {
+                audio.playClick();
+                calc.backspace();
+            } else if (e.key === 'Escape') {
+                audio.playClick();
+                calc.clear();
+            } else if (e.key === '%') {
+                audio.playClick();
+                calc.percent();
+            }
+        });
+
+        // Audio Toggle
+        const btnAudioToggle = document.getElementById('btnAudioToggle');
+        const iconSoundOn = document.getElementById('iconSoundOn');
+        const iconSoundOff = document.getElementById('iconSoundOff');
+
+        btnAudioToggle.addEventListener('click', () => {
+            audio.enabled = !audio.enabled;
+            if (audio.enabled) {
+                iconSoundOn.classList.remove('hidden');
+                iconSoundOff.classList.add('hidden');
+                audio.playMeow();
+            } else {
+                iconSoundOn.classList.add('hidden');
+                iconSoundOff.classList.remove('hidden');
+            }
+        });
+
+        // History Modal Functionality
+        const historyModal = document.getElementById('historyModal');
+        const btnHistoryToggle = document.getElementById('btnHistoryToggle');
+        const btnCloseHistory = document.getElementById('btnCloseHistory');
+        const btnClearHistory = document.getElementById('btnClearHistory');
+        const historyList = document.getElementById('historyList');
+
+        function renderHistory() {
+            historyList.innerHTML = '';
+            if (calc.history.length === 0) {
+                historyList.innerHTML = `
+                    <div class="text-center py-8 text-pastelText/50 text-sm">
+                        Nenhum cálculo salvo ainda, miau!
+                    </div>
+                `;
+                return;
+            }
+
+            calc.history.forEach((item) => {
+                const el = document.createElement('div');
+                el.className = 'p-2.5 bg-pastelPink/20 hover:bg-pastelPink/40 rounded-xl cursor-pointer transition-colors flex justify-between items-center';
+                el.innerHTML = `
+                    <span class="text-xs text-pastelText/70 font-medium">${item.expression} =</span>
+                    <span class="text-sm font-bold text-pastelText">${calc.formatNumber(item.result)}</span>
+                `;
+                el.addEventListener('click', () => {
+                    audio.playClick();
+                    calc.currentInput = item.result;
+                    calc.shouldResetScreen = true;
+                    calc.updateDisplay();
+                    historyModal.classList.add('hidden');
+                });
+                historyList.appendChild(el);
+            });
+        }
+
+        btnHistoryToggle.addEventListener('click', () => {
+            audio.playClick();
+            renderHistory();
+            historyModal.classList.remove('hidden');
+        });
+
+        btnCloseHistory.addEventListener('click', () => {
+            audio.playClick();
+            historyModal.classList.add('hidden');
+        });
+
+        btnClearHistory.addEventListener('click', () => {
+            audio.playClick();
+            calc.clearHistory();
+        });
+
+        historyModal.addEventListener('click', (e) => {
+            if (e.target === historyModal) historyModal.classList.add('hidden');
+        });
+
+        /* ----------------------------------------------------
+           4. DYNAMIC PWA MANIFEST & SERVICE WORKER BLOB
+           Enables local-first PWA installation without server files!
+           ---------------------------------------------------- */
+        
+        // SVG Icon Data URL for PWA
+        const pwaIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="%23F48FB1"><rect width="512" height="512" rx="120" fill="%23FCE4EC"/><path d="M160 120 C120 120, 80 200, 80 260 L80 340 C80 400, 160 440, 256 440 C352 440, 432 400, 432 340 L432 260 C432 200, 392 120, 352 120 L300 180 C270 160, 242 160, 212 180 Z" fill="%23F48FB1"/><circle cx="180" cy="270" r="24" fill="%234A3E4E"/><circle cx="332" cy="270" r="24" fill="%234A3E4E"/><polygon points="256,310 236,290 276,290" fill="%23FF80AB"/></svg>`;
+        const pwaIconUrl = `data:image/svg+xml;utf8,${encodeURIComponent(pwaIconSvg)}`;
+
+        // Inject Dynamic Manifest
+        const manifestObj = {
+            name: "Calculadora de Gatinhos",
+            short_name: "GatiCalc",
+            description: "Uma fofa calculadora de gatinhos pastel e local-first",
+            start_url: "./",
+            display: "standalone",
+            background_color: "#FCE4EC",
+            theme_color: "#F48FB1",
+            icons: [
+                {
+                    src: pwaIconUrl,
+                    sizes: "512x512",
+                    type: "image/svg+xml",
+                    purpose: "any maskable"
+                }
+            ]
+        };
+
+        const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/json' });
+        const manifestURL = URL.createObjectURL(manifestBlob);
+        const manifestLink = document.createElement('link');
+        manifestLink.rel = 'manifest';
+        manifestLink.href = manifestURL;
+        document.head.appendChild(manifestLink);
+
+        // Service Worker Script Blob for Offline Support
+        if ('serviceWorker' in navigator) {
+            const swCode = `
+                const CACHE_NAME = 'cat-calc-v1';
+                self.addEventListener('install', (e) => {
+                    self.skipWaiting();
+                });
+                self.addEventListener('activate', (e) => {
+                    e.waitUntil(clients.claim());
+                });
+                self.addEventListener('fetch', (e) => {
+                    e.respondWith(
+                        caches.match(e.request).then((res) => res || fetch(e.request).catch(() => res))
+                    );
+                });
+            `;
+            const swBlob = new Blob([swCode], { type: 'text/javascript' });
+            const swUrl = URL.createObjectURL(swBlob);
+
+            navigator.serviceWorker.register(swUrl).catch(() => {
+                // Silent fail if Blob SW registration is blocked by environment
+            });
+        }
+
+        // Handle PWA Install Prompt Banner
+        let deferredPrompt;
+        const pwaInstallBanner = document.getElementById('pwaInstallBanner');
+        const btnInstallPwa = document.getElementById('btnInstallPwa');
+        const btnClosePwa = document.getElementById('btnClosePwa');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            pwaInstallBanner.classList.remove('hidden');
+        });
+
+        btnInstallPwa.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                pwaInstallBanner.classList.add('hidden');
+            }
+            deferredPrompt = null;
+        });
+
+        btnClosePwa.addEventListener('click', () => {
+            pwaInstallBanner.classList.add('hidden');
+        });
+    </script>
+</body>
+</html>
